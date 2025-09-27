@@ -1059,6 +1059,39 @@ body {
 /* Transcription Panel */
 .transcription-panel .panel-header {
     background: linear-gradient(135deg, var(--secondary-black), var(--card-black));
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.transcription-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.provider-select,
+.language-select {
+    background: var(--primary-black);
+    border: 1px solid var(--border-gray);
+    color: var(--text-white);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.provider-select:hover,
+.language-select:hover {
+    border-color: var(--accent-blue);
+}
+
+.provider-select:focus,
+.language-select:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1);
 }
 
 .transcribe-btn {
@@ -1073,6 +1106,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    white-space: nowrap;
 }
 
 .transcribe-btn:disabled {
@@ -1084,6 +1118,97 @@ body {
 .transcribe-btn:not(:disabled):hover {
     transform: translateY(-1px);
     box-shadow: 0 8px 25px rgba(31, 182, 255, 0.3);
+}
+
+/* Transcription Search */
+.transcription-search {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: var(--primary-black);
+    border: 1px solid var(--border-gray);
+    border-radius: var(--border-radius);
+}
+
+.search-input {
+    width: 100%;
+    background: var(--secondary-black);
+    border: 1px solid var(--border-gray);
+    color: var(--text-white);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.1);
+}
+
+.search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.search-btn {
+    background: var(--accent-green);
+    color: var(--primary-black);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.search-btn:hover {
+    background: #00c49a;
+    transform: translateY(-1px);
+}
+
+.search-results {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    padding: 10px;
+    background: var(--card-black);
+    border: 1px solid var(--border-gray);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.search-result-item:hover {
+    border-color: var(--accent-blue);
+    background: var(--secondary-black);
+}
+
+.search-result-text {
+    color: var(--text-white);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.search-result-meta {
+    color: var(--text-gray);
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.search-highlight {
+    background: var(--accent-green);
+    color: var(--primary-black);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
 }
 
 .transcription-content {
@@ -1122,9 +1247,35 @@ body {
     border-bottom: 1px solid var(--border-gray);
 }
 
+.transcription-info {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
 .confidence-badge {
     background: var(--accent-green);
     color: var(--primary-black);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.provider-badge {
+    background: var(--accent-blue);
+    color: var(--primary-black);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.language-badge {
+    background: var(--secondary-black);
+    color: var(--text-white);
+    border: 1px solid var(--border-gray);
     padding: 6px 12px;
     border-radius: 20px;
     font-weight: 600;
@@ -1689,13 +1840,46 @@ body {
     
     .transcription-header {
         flex-direction: column;
-        gap: 10px;
+        gap: 15px;
         align-items: flex-start;
+    }
+    
+    .transcription-info {
+        flex-wrap: wrap;
+        gap: 8px;
     }
     
     .transcription-actions {
         width: 100%;
-        justify-content: flex-end;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .transcription-controls {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .provider-select,
+    .language-select {
+        width: 100%;
+        padding: 10px 12px;
+    }
+    
+    .transcribe-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .search-input {
+        font-size: 0.95rem;
+        padding: 10px 14px;
+    }
+    
+    .search-results {
+        max-height: 150px;
     }
 }
 

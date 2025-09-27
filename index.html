@@ -169,12 +169,39 @@
                 <div class="panel transcription-panel">
                     <div class="panel-header">
                         <h2>🤖 AI Transcription</h2>
-                        <button class="transcribe-btn" id="transcribeBtn" disabled>
-                            <span>✨</span> Transcribe
-                        </button>
+                        <div class="transcription-controls">
+                            <select id="aiProvider" class="provider-select">
+                                <option value="openai">OpenAI Whisper</option>
+                                <option value="google">Google Speech</option>
+                                <option value="azure">Azure Speech</option>
+                                <option value="mock" selected>Demo Mode</option>
+                            </select>
+                            <select id="languageSelect" class="language-select">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                                <option value="de">German</option>
+                                <option value="it">Italian</option>
+                                <option value="pt">Portuguese</option>
+                                <option value="zh">Chinese</option>
+                                <option value="ja">Japanese</option>
+                                <option value="ko">Korean</option>
+                                <option value="ar">Arabic</option>
+                            </select>
+                            <button class="transcribe-btn" id="transcribeBtn" disabled>
+                                <span>✨</span> Transcribe
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="transcription-content">
+                        <!-- Search Bar -->
+                        <div class="transcription-search" id="transcriptionSearch" style="display: none;">
+                            <input type="text" id="searchTranscriptions" placeholder="Search through transcriptions..." class="search-input">
+                            <button class="search-btn" onclick="recorder.searchTranscriptions()">🔍</button>
+                            <div id="searchResults" class="search-results"></div>
+                        </div>
+                        
                         <div class="transcription-status" id="transcriptionStatus">
                             <div class="status-icon">🎯</div>
                             <p>Record or upload media to generate transcription</p>
@@ -182,10 +209,17 @@
                         
                         <div class="transcription-output" id="transcriptionOutput" style="display: none;">
                             <div class="transcription-header">
-                                <span class="confidence-badge" id="confidenceBadge">95%</span>
+                                <div class="transcription-info">
+                                    <span class="confidence-badge" id="confidenceBadge">95%</span>
+                                    <span class="provider-badge" id="providerBadge">OpenAI Whisper</span>
+                                    <span class="language-badge" id="languageBadge">English</span>
+                                </div>
                                 <div class="transcription-actions">
                                     <button class="action-btn" id="copyTranscriptBtn">📋 Copy</button>
-                                    <button class="action-btn" id="downloadTranscriptBtn">💾 Download</button>
+                                    <button class="action-btn" id="downloadTranscriptBtn">💾 Export</button>
+                                    <button class="action-btn" id="generateCaptionsBtn">📺 Captions</button>
+                                    <button class="action-btn" id="downloadSRTBtn">⬇️ SRT</button>
+                                    <button class="action-btn" id="downloadVTTBtn">⬇️ VTT</button>
                                 </div>
                             </div>
                             <div class="transcript-text" id="transcriptText"></div>

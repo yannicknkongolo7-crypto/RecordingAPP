@@ -1,3 +1,426 @@
+// AI Transcription Service
+class AITranscriptionService {
+    constructor() {
+        this.apiKeys = {
+            openai: null, // Users would need to add their API keys
+            google: null,
+            azure: null
+        };
+        this.currentProvider = 'mock';
+        this.currentLanguage = 'en';
+        this.allTranscriptions = []; // Store all transcriptions for search
+    }
+
+    // Set API configuration
+    setApiKey(provider, apiKey) {
+        if (this.apiKeys.hasOwnProperty(provider)) {
+            this.apiKeys[provider] = apiKey;
+        }
+    }
+
+    setProvider(provider) {
+        this.currentProvider = provider;
+    }
+
+    setLanguage(language) {
+        this.currentLanguage = language;
+    }
+
+    // Main transcription method
+    async transcribe(audioBlob, options = {}) {
+        const provider = options.provider || this.currentProvider;
+        const language = options.language || this.currentLanguage;
+
+        console.log(`Transcribing with ${provider} in ${language}`);
+
+        switch (provider) {
+            case 'openai':
+                return await this.transcribeWithOpenAI(audioBlob, language);
+            case 'google':
+                return await this.transcribeWithGoogle(audioBlob, language);
+            case 'azure':
+                return await this.transcribeWithAzure(audioBlob, language);
+            default:
+                return await this.transcribeWithMock(audioBlob, language);
+        }
+    }
+
+    // OpenAI Whisper API Integration
+    async transcribeWithOpenAI(audioBlob, language) {
+        if (!this.apiKeys.openai) {
+            throw new Error('OpenAI API key not configured');
+        }
+
+        // Convert blob to the format required by OpenAI
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.webm');
+        formData.append('model', 'whisper-1');
+        formData.append('language', language);
+        formData.append('response_format', 'verbose_json');
+
+        try {
+            const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.apiKeys.openai}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`OpenAI API error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return this.formatTranscriptionResult(result, 'openai', language);
+        } catch (error) {
+            console.error('OpenAI transcription error:', error);
+            throw error;
+        }
+    }
+
+    // Google Speech-to-Text API Integration
+    async transcribeWithGoogle(audioBlob, language) {
+        if (!this.apiKeys.google) {
+            throw new Error('Google Cloud API key not configured');
+        }
+
+        // Convert audio blob to base64 for Google API
+        const base64Audio = await this.blobToBase64(audioBlob);
+
+        const requestBody = {
+            config: {
+                encoding: 'WEBM_OPUS',
+                sampleRateHertz: 48000,
+                languageCode: this.mapLanguageCodeForGoogle(language),
+                enableWordTimeOffsets: true,
+                enableAutomaticPunctuation: true
+            },
+            audio: {
+                content: base64Audio.split(',')[1] // Remove data:audio prefix
+            }
+        };
+
+        try {
+            const response = await fetch(`https://speech.googleapis.com/v1/speech:recognize?key=${this.apiKeys.google}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Google Speech API error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return this.formatTranscriptionResult(result, 'google', language);
+        } catch (error) {
+            console.error('Google transcription error:', error);
+            throw error;
+        }
+    }
+
+    // Azure Speech Services Integration
+    async transcribeWithAzure(audioBlob, language) {
+        if (!this.apiKeys.azure) {
+            throw new Error('Azure Speech API key not configured');
+        }
+
+        // Azure Speech requires specific headers and format
+        const arrayBuffer = await audioBlob.arrayBuffer();
+
+        try {
+            const response = await fetch(`https://YOUR_REGION.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${language}`, {
+                method: 'POST',
+                headers: {
+                    'Ocp-Apim-Subscription-Key': this.apiKeys.azure,
+                    'Content-Type': 'audio/webm; codecs=opus',
+                    'Accept': 'application/json'
+                },
+                body: arrayBuffer
+            });
+
+            if (!response.ok) {
+                throw new Error(`Azure Speech API error: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return this.formatTranscriptionResult(result, 'azure', language);
+        } catch (error) {
+            console.error('Azure transcription error:', error);
+            throw error;
+        }
+    }
+
+    // Mock transcription for demo purposes
+    async transcribeWithMock(audioBlob, language) {
+        // Simulate processing time
+        await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
+
+        const mockTranscripts = {
+            en: [
+                "Hello, this is a sample transcription of your recorded audio using advanced AI technology. The system has successfully processed your speech and converted it into accurate text with high confidence levels.",
+                "Welcome to the enhanced video recording application with AI-powered transcription capabilities. This feature demonstrates real-time speech recognition and natural language processing.",
+                "This is an example of multi-language AI transcription functionality. Your recorded content has been analyzed and converted to searchable text with timestamp synchronization for caption generation."
+            ],
+            es: [
+                "Hola, esta es una transcripción de muestra de su audio grabado utilizando tecnología de inteligencia artificial avanzada. El sistema ha procesado exitosamente su discurso y lo ha convertido en texto preciso.",
+                "Bienvenido a la aplicación mejorada de grabación de video con capacidades de transcripción impulsadas por IA. Esta característica demuestra reconocimiento de voz en tiempo real.",
+                "Este es un ejemplo de funcionalidad de transcripción de IA multiidioma. Su contenido grabado ha sido analizado y convertido a texto con sincronización de marcas de tiempo."
+            ],
+            fr: [
+                "Bonjour, ceci est un exemple de transcription de votre audio enregistré utilisant une technologie d'intelligence artificielle avancée. Le système a traité avec succès votre discours.",
+                "Bienvenue dans l'application améliorée d'enregistrement vidéo avec des capacités de transcription alimentées par l'IA. Cette fonctionnalité démontre la reconnaissance vocale en temps réel.",
+                "Ceci est un exemple de fonctionnalité de transcription IA multilingue. Votre contenu enregistré a été analysé et converti en texte recherchable."
+            ],
+            de: [
+                "Hallo, dies ist eine Beispieltranskription Ihres aufgenommenen Audios mit fortschrittlicher KI-Technologie. Das System hat Ihre Sprache erfolgreich verarbeitet und in genauen Text umgewandelt.",
+                "Willkommen in der verbesserten Videoaufnahme-Anwendung mit KI-gestützten Transkriptionsfunktionen. Diese Funktion demonstriert Echtzeit-Spracherkennung.",
+                "Dies ist ein Beispiel für mehrsprachige KI-Transkriptionsfunktionalität. Ihr aufgenommener Inhalt wurde analysiert und in durchsuchbaren Text konvertiert."
+            ]
+        };
+
+        const transcripts = mockTranscripts[language] || mockTranscripts['en'];
+        const randomIndex = Math.floor(Math.random() * transcripts.length);
+        
+        return {
+            text: transcripts[randomIndex],
+            confidence: 0.85 + Math.random() * 0.14, // 85-99% confidence
+            provider: 'mock',
+            language: language,
+            segments: this.generateMockSegments(transcripts[randomIndex]),
+            duration: Math.floor(Math.random() * 180) + 30 // 30-210 seconds
+        };
+    }
+
+    // Generate mock segments with timestamps for caption generation
+    generateMockSegments(text) {
+        const words = text.split(' ');
+        const segments = [];
+        let currentTime = 0;
+        
+        for (let i = 0; i < words.length; i += 5) {
+            const segmentWords = words.slice(i, i + 5).join(' ');
+            const duration = segmentWords.length * 0.1 + Math.random() * 2; // Variable duration
+            
+            segments.push({
+                start: currentTime,
+                end: currentTime + duration,
+                text: segmentWords
+            });
+            
+            currentTime += duration + 0.5; // Add pause between segments
+        }
+        
+        return segments;
+    }
+
+    // Format transcription results from different providers
+    formatTranscriptionResult(result, provider, language) {
+        let formattedResult = {
+            provider: provider,
+            language: language,
+            confidence: 0.9,
+            text: '',
+            segments: []
+        };
+
+        switch (provider) {
+            case 'openai':
+                formattedResult.text = result.text;
+                formattedResult.confidence = result.confidence || 0.9;
+                if (result.segments) {
+                    formattedResult.segments = result.segments.map(seg => ({
+                        start: seg.start,
+                        end: seg.end,
+                        text: seg.text
+                    }));
+                }
+                break;
+                
+            case 'google':
+                if (result.results && result.results[0]) {
+                    const alternative = result.results[0].alternatives[0];
+                    formattedResult.text = alternative.transcript;
+                    formattedResult.confidence = alternative.confidence || 0.9;
+                    
+                    if (alternative.words) {
+                        formattedResult.segments = this.groupWordsIntoSegments(alternative.words);
+                    }
+                }
+                break;
+                
+            case 'azure':
+                formattedResult.text = result.DisplayText || result.RecognitionStatus;
+                formattedResult.confidence = result.Confidence || 0.9;
+                break;
+        }
+
+        // Store for search functionality
+        this.allTranscriptions.push({
+            id: Date.now(),
+            ...formattedResult,
+            timestamp: new Date()
+        });
+
+        return formattedResult;
+    }
+
+    // Helper methods
+    async blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    mapLanguageCodeForGoogle(language) {
+        const mapping = {
+            'en': 'en-US',
+            'es': 'es-ES',
+            'fr': 'fr-FR',
+            'de': 'de-DE',
+            'it': 'it-IT',
+            'pt': 'pt-BR',
+            'zh': 'zh-CN',
+            'ja': 'ja-JP',
+            'ko': 'ko-KR',
+            'ar': 'ar-SA'
+        };
+        return mapping[language] || 'en-US';
+    }
+
+    groupWordsIntoSegments(words, maxSegmentLength = 10) {
+        const segments = [];
+        let currentSegment = [];
+        let currentStart = null;
+
+        for (const word of words) {
+            if (currentSegment.length === 0) {
+                currentStart = parseFloat(word.startTime.replace('s', ''));
+            }
+
+            currentSegment.push(word.word);
+
+            if (currentSegment.length >= maxSegmentLength) {
+                const endTime = parseFloat(word.endTime.replace('s', ''));
+                segments.push({
+                    start: currentStart,
+                    end: endTime,
+                    text: currentSegment.join(' ')
+                });
+                currentSegment = [];
+            }
+        }
+
+        // Add remaining words
+        if (currentSegment.length > 0) {
+            const lastWord = words[words.length - 1];
+            const endTime = parseFloat(lastWord.endTime.replace('s', ''));
+            segments.push({
+                start: currentStart,
+                end: endTime,
+                text: currentSegment.join(' ')
+            });
+        }
+
+        return segments;
+    }
+
+    // Search through all transcriptions
+    searchTranscriptions(query) {
+        if (!query.trim()) return [];
+
+        const results = [];
+        const searchTerms = query.toLowerCase().split(/\s+/);
+
+        for (const transcription of this.allTranscriptions) {
+            const text = transcription.text.toLowerCase();
+            let relevanceScore = 0;
+            const matches = [];
+
+            for (const term of searchTerms) {
+                const regex = new RegExp(term, 'gi');
+                const termMatches = text.match(regex);
+                if (termMatches) {
+                    relevanceScore += termMatches.length;
+                    matches.push(...termMatches);
+                }
+            }
+
+            if (relevanceScore > 0) {
+                results.push({
+                    ...transcription,
+                    relevanceScore,
+                    matches,
+                    highlightedText: this.highlightMatches(transcription.text, searchTerms)
+                });
+            }
+        }
+
+        // Sort by relevance score
+        return results.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    }
+
+    highlightMatches(text, searchTerms) {
+        let highlighted = text;
+        for (const term of searchTerms) {
+            const regex = new RegExp(`(${term})`, 'gi');
+            highlighted = highlighted.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+        return highlighted;
+    }
+
+    // Generate SRT caption file
+    generateSRT(segments) {
+        let srt = '';
+        for (let i = 0; i < segments.length; i++) {
+            const segment = segments[i];
+            const startTime = this.formatSRTTime(segment.start);
+            const endTime = this.formatSRTTime(segment.end);
+            
+            srt += `${i + 1}\n`;
+            srt += `${startTime} --> ${endTime}\n`;
+            srt += `${segment.text}\n\n`;
+        }
+        return srt;
+    }
+
+    // Generate VTT caption file
+    generateVTT(segments) {
+        let vtt = 'WEBVTT\n\n';
+        for (const segment of segments) {
+            const startTime = this.formatVTTTime(segment.start);
+            const endTime = this.formatVTTTime(segment.end);
+            
+            vtt += `${startTime} --> ${endTime}\n`;
+            vtt += `${segment.text}\n\n`;
+        }
+        return vtt;
+    }
+
+    formatSRTTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        const milliseconds = Math.floor((seconds % 1) * 1000);
+        
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${milliseconds.toString().padStart(3, '0')}`;
+    }
+
+    formatVTTTime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = (seconds % 60).toFixed(3);
+        
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.padStart(6, '0')}`;
+    }
+}
+
 // Authentication Manager
 class AuthManager {
     constructor() {
@@ -270,6 +693,10 @@ class VideoAudioRecorder {
         this.recordType = 'video'; // 'video' or 'audio'
         this.authManager = authManager;
         this.currentRecordingForTranscription = null;
+        this.currentTranscriptionResult = null;
+        
+        // Initialize AI transcription service
+        this.aiService = new AITranscriptionService();
         
         this.initializeElements();
         this.bindEvents();
@@ -300,6 +727,23 @@ class VideoAudioRecorder {
         this.transcriptionStatus = document.getElementById('transcriptionStatus');
         this.transcriptionOutput = document.getElementById('transcriptionOutput');
         this.transcriptText = document.getElementById('transcriptText');
+        this.aiProviderSelect = document.getElementById('aiProvider');
+        this.languageSelect = document.getElementById('languageSelect');
+        this.confidenceBadge = document.getElementById('confidenceBadge');
+        this.providerBadge = document.getElementById('providerBadge');
+        this.languageBadge = document.getElementById('languageBadge');
+        
+        // Search elements
+        this.transcriptionSearch = document.getElementById('transcriptionSearch');
+        this.searchInput = document.getElementById('searchTranscriptions');
+        this.searchResults = document.getElementById('searchResults');
+        
+        // Action buttons
+        this.copyTranscriptBtn = document.getElementById('copyTranscriptBtn');
+        this.downloadTranscriptBtn = document.getElementById('downloadTranscriptBtn');
+        this.generateCaptionsBtn = document.getElementById('generateCaptionsBtn');
+        this.downloadSRTBtn = document.getElementById('downloadSRTBtn');
+        this.downloadVTTBtn = document.getElementById('downloadVTTBtn');
         
         // Upload elements (if they exist)
         this.uploadArea = document.getElementById('uploadArea');
@@ -321,6 +765,27 @@ class VideoAudioRecorder {
 
         // Transcription events
         this.transcribeBtn?.addEventListener('click', () => this.handleTranscription());
+        this.aiProviderSelect?.addEventListener('change', (e) => {
+            this.aiService.setProvider(e.target.value);
+            this.updateProviderInfo();
+        });
+        this.languageSelect?.addEventListener('change', (e) => {
+            this.aiService.setLanguage(e.target.value);
+            this.updateLanguageInfo();
+        });
+
+        // Search functionality
+        this.searchInput?.addEventListener('input', (e) => this.handleSearchInput(e));
+        this.searchInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.searchTranscriptions();
+        });
+
+        // Action button events
+        this.copyTranscriptBtn?.addEventListener('click', () => this.copyTranscript());
+        this.downloadTranscriptBtn?.addEventListener('click', () => this.exportTranscript());
+        this.generateCaptionsBtn?.addEventListener('click', () => this.generateCaptions());
+        this.downloadSRTBtn?.addEventListener('click', () => this.downloadSRT());
+        this.downloadVTTBtn?.addEventListener('click', () => this.downloadVTT());
 
         // File upload events (if elements exist)
         if (this.fileInput) {
@@ -347,6 +812,9 @@ class VideoAudioRecorder {
 
         // Initialize preview
         this.updatePreview();
+        
+        // Show search bar once there are transcriptions
+        this.updateSearchVisibility();
     }
 
     setRecordingMode(mode) {
@@ -451,54 +919,65 @@ class VideoAudioRecorder {
         }
 
         try {
-            this.showTranscriptionStatus('🔄', 'Processing audio for transcription...', 'loading');
-            this.transcribeBtn.disabled = true;
-            this.transcribeBtn.textContent = 'Processing...';
-
-            // Simulate AI transcription (in a real app, this would call an AI service like Whisper, Google Speech-to-Text, etc.)
-            const transcript = await this.performTranscription(this.currentRecordingForTranscription);
+            const selectedProvider = this.aiProviderSelect?.value || 'mock';
+            const selectedLanguage = this.languageSelect?.value || 'en';
             
-            if (transcript) {
-                this.showTranscriptionResult(transcript);
-            } else {
-                this.showTranscriptionStatus('❌', 'Transcription failed. Please try again.', 'error');
-            }
+            this.showTranscriptionStatus('🔄', `Processing with ${this.getProviderName(selectedProvider)}...`, 'loading');
+            this.transcribeBtn.disabled = true;
+            this.transcribeBtn.innerHTML = '<span>⏳</span> Processing...';
+
+            // Get the audio blob for transcription
+            const audioBlob = this.extractAudioFromRecording(this.currentRecordingForTranscription);
+            
+            // Use the AI service to transcribe
+            const result = await this.aiService.transcribe(audioBlob, {
+                provider: selectedProvider,
+                language: selectedLanguage
+            });
+            
+            this.currentTranscriptionResult = result;
+            this.showTranscriptionResult(result);
+            this.updateSearchVisibility();
+            
         } catch (error) {
             console.error('Transcription error:', error);
-            this.showTranscriptionStatus('❌', 'Transcription failed. Please try again.', 'error');
+            this.showTranscriptionStatus('❌', `Transcription failed: ${error.message}`, 'error');
         } finally {
             this.transcribeBtn.disabled = false;
-            this.transcribeBtn.innerHTML = '<span class="icon">🎯</span> Transcribe';
+            this.transcribeBtn.innerHTML = '<span>✨</span> Transcribe';
         }
     }
 
-    async performTranscription(recording) {
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 2000));
+    extractAudioFromRecording(recording) {
+        // For video recordings, we would need to extract audio
+        // For now, we'll work with the blob directly
+        return recording.blob;
+    }
 
-        // In a real application, you would:
-        // 1. Convert the audio to the required format
-        // 2. Send it to an AI transcription service like:
-        //    - OpenAI Whisper API
-        //    - Google Cloud Speech-to-Text
-        //    - Azure Speech Services
-        //    - Amazon Transcribe
-        // 3. Return the transcribed text
-
-        // For demo purposes, we'll return a mock transcription
-        const mockTranscripts = [
-            "Hello, this is a sample transcription of your recorded audio. The AI has successfully processed your speech and converted it into text. This feature would normally connect to a real speech-to-text service like OpenAI Whisper or Google Cloud Speech API.",
-            "Welcome to the video recording application. This transcription feature demonstrates how your recorded content can be automatically converted to text using artificial intelligence. In a production environment, this would integrate with professional speech recognition services.",
-            "This is an example of AI-powered transcription functionality. Your recorded audio or video content has been processed and converted to readable text. This feature can be extremely useful for creating captions, notes, or searchable content from your recordings."
-        ];
-
-        const randomIndex = Math.floor(Math.random() * mockTranscripts.length);
-        return {
-            text: mockTranscripts[randomIndex],
-            confidence: 0.92 + Math.random() * 0.07, // Random confidence between 92-99%
-            duration: recording.duration,
-            recordingType: recording.type
+    getProviderName(provider) {
+        const names = {
+            'openai': 'OpenAI Whisper',
+            'google': 'Google Speech',
+            'azure': 'Azure Speech',
+            'mock': 'Demo Mode'
         };
+        return names[provider] || provider;
+    }
+
+    getLanguageName(code) {
+        const names = {
+            'en': 'English',
+            'es': 'Spanish',
+            'fr': 'French',
+            'de': 'German',
+            'it': 'Italian',
+            'pt': 'Portuguese',
+            'zh': 'Chinese',
+            'ja': 'Japanese',
+            'ko': 'Korean',
+            'ar': 'Arabic'
+        };
+        return names[code] || code;
     }
 
     showTranscriptionStatus(icon, message, type = 'info') {
@@ -538,36 +1017,313 @@ class VideoAudioRecorder {
         this.transcriptionStatus.style.display = 'none';
         this.transcriptionOutput.style.display = 'flex';
 
-        // Update confidence badge and transcript text
+        // Update badges
         const confidencePercentage = Math.round(result.confidence * 100);
-        const confidenceBadge = this.transcriptionOutput.querySelector('.confidence-badge');
-        if (confidenceBadge) {
-            confidenceBadge.textContent = `${confidencePercentage}% confidence`;
+        
+        if (this.confidenceBadge) {
+            this.confidenceBadge.textContent = `${confidencePercentage}%`;
             
             // Color code confidence levels
             if (confidencePercentage >= 90) {
-                confidenceBadge.style.background = 'var(--accent-green)';
+                this.confidenceBadge.style.background = 'var(--accent-green)';
             } else if (confidencePercentage >= 75) {
-                confidenceBadge.style.background = 'var(--accent-blue)';
+                this.confidenceBadge.style.background = 'var(--accent-blue)';
             } else {
-                confidenceBadge.style.background = 'var(--accent-red)';
+                this.confidenceBadge.style.background = 'var(--accent-red)';
             }
+        }
+
+        if (this.providerBadge) {
+            this.providerBadge.textContent = this.getProviderName(result.provider);
+        }
+
+        if (this.languageBadge) {
+            this.languageBadge.textContent = this.getLanguageName(result.language);
         }
 
         this.transcriptText.textContent = result.text;
 
-        // Add action button event listeners
-        const copyBtn = this.transcriptionOutput.querySelector('.action-btn[onclick*="copy"]');
-        const exportBtn = this.transcriptionOutput.querySelector('.action-btn[onclick*="export"]');
-
-        if (copyBtn) {
-            copyBtn.onclick = () => this.copyTranscript(result.text);
-        }
-        if (exportBtn) {
-            exportBtn.onclick = () => this.exportTranscript(result);
-        }
-
         this.showSuccess(`Transcription completed with ${confidencePercentage}% confidence!`);
+    }
+
+    // Search functionality
+    handleSearchInput(event) {
+        const query = event.target.value.trim();
+        if (query.length < 3) {
+            this.clearSearchResults();
+            return;
+        }
+        
+        // Debounce search
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+            this.searchTranscriptions(query);
+        }, 300);
+    }
+
+    searchTranscriptions(query = null) {
+        const searchQuery = query || this.searchInput?.value?.trim();
+        if (!searchQuery) return;
+
+        const results = this.aiService.searchTranscriptions(searchQuery);
+        this.displaySearchResults(results, searchQuery);
+    }
+
+    displaySearchResults(results, query) {
+        if (!this.searchResults) return;
+
+        this.searchResults.innerHTML = '';
+        
+        if (results.length === 0) {
+            this.searchResults.innerHTML = `
+                <div class="search-result-item">
+                    <div class="search-result-text">No matches found for "${query}"</div>
+                </div>
+            `;
+            return;
+        }
+
+        results.slice(0, 5).forEach(result => { // Show top 5 results
+            const item = document.createElement('div');
+            item.className = 'search-result-item';
+            item.innerHTML = `
+                <div class="search-result-text">${result.highlightedText}</div>
+                <div class="search-result-meta">
+                    ${result.timestamp.toLocaleDateString()} • 
+                    ${this.getProviderName(result.provider)} • 
+                    ${this.getLanguageName(result.language)} • 
+                    Score: ${result.relevanceScore}
+                </div>
+            `;
+            
+            item.addEventListener('click', () => {
+                this.selectTranscriptionResult(result);
+            });
+            
+            this.searchResults.appendChild(item);
+        });
+    }
+
+    selectTranscriptionResult(result) {
+        // Display the selected transcription result
+        this.currentTranscriptionResult = result;
+        this.showTranscriptionResult(result);
+        this.searchInput.value = '';
+        this.clearSearchResults();
+    }
+
+    clearSearchResults() {
+        if (this.searchResults) {
+            this.searchResults.innerHTML = '';
+        }
+    }
+
+    updateSearchVisibility() {
+        if (this.transcriptionSearch) {
+            const hasTranscriptions = this.aiService.allTranscriptions.length > 0;
+            this.transcriptionSearch.style.display = hasTranscriptions ? 'block' : 'none';
+        }
+    }
+
+    // Caption generation methods
+    generateCaptions() {
+        if (!this.currentTranscriptionResult || !this.currentTranscriptionResult.segments) {
+            this.showError('No transcription with timing data available for caption generation.');
+            return;
+        }
+
+        // Show options for caption generation
+        const modal = this.createCaptionModal();
+        document.body.appendChild(modal);
+    }
+
+    createCaptionModal() {
+        const modal = document.createElement('div');
+        modal.className = 'caption-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        modal.innerHTML = `
+            <div class="modal-content" style="
+                background: var(--card-black);
+                border: 1px solid var(--border-gray);
+                border-radius: var(--border-radius-lg);
+                padding: 30px;
+                max-width: 500px;
+                width: 90%;
+            ">
+                <h3 style="color: var(--text-white); margin-bottom: 20px;">Generate Captions</h3>
+                <p style="color: var(--text-gray); margin-bottom: 25px;">
+                    Choose the caption format for your video:
+                </p>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button class="btn-caption" onclick="recorder.downloadSRT(); this.closest('.caption-modal').remove();">
+                        📄 Download SRT
+                    </button>
+                    <button class="btn-caption" onclick="recorder.downloadVTT(); this.closest('.caption-modal').remove();">
+                        📺 Download VTT
+                    </button>
+                    <button class="btn-caption" onclick="recorder.previewCaptions(); this.closest('.caption-modal').remove();">
+                        👁️ Preview
+                    </button>
+                </div>
+                <button onclick="this.closest('.caption-modal').remove();" style="
+                    background: var(--border-gray);
+                    color: var(--text-white);
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    margin-top: 20px;
+                    width: 100%;
+                    cursor: pointer;
+                ">Close</button>
+            </div>
+        `;
+
+        // Add styles for caption buttons
+        const style = document.createElement('style');
+        style.textContent = `
+            .btn-caption {
+                background: var(--accent-blue);
+                color: var(--primary-black);
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            .btn-caption:hover {
+                background: var(--accent-green);
+                transform: translateY(-1px);
+            }
+        `;
+        document.head.appendChild(style);
+
+        return modal;
+    }
+
+    downloadSRT() {
+        if (!this.currentTranscriptionResult?.segments) {
+            this.showError('No transcription segments available for SRT generation.');
+            return;
+        }
+
+        const srtContent = this.aiService.generateSRT(this.currentTranscriptionResult.segments);
+        this.downloadFile(srtContent, 'captions.srt', 'text/plain');
+        this.showSuccess('SRT caption file downloaded!');
+    }
+
+    downloadVTT() {
+        if (!this.currentTranscriptionResult?.segments) {
+            this.showError('No transcription segments available for VTT generation.');
+            return;
+        }
+
+        const vttContent = this.aiService.generateVTT(this.currentTranscriptionResult.segments);
+        this.downloadFile(vttContent, 'captions.vtt', 'text/vtt');
+        this.showSuccess('VTT caption file downloaded!');
+    }
+
+    previewCaptions() {
+        if (!this.currentTranscriptionResult?.segments) {
+            this.showError('No transcription segments available for preview.');
+            return;
+        }
+
+        // Create preview modal
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        const previewContent = this.currentTranscriptionResult.segments.map((segment, index) => 
+            `${index + 1}. [${this.formatTime(segment.start)} - ${this.formatTime(segment.end)}] ${segment.text}`
+        ).join('\n\n');
+
+        modal.innerHTML = `
+            <div style="
+                background: var(--card-black);
+                border: 1px solid var(--border-gray);
+                border-radius: var(--border-radius-lg);
+                padding: 30px;
+                max-width: 80%;
+                max-height: 80%;
+                overflow-y: auto;
+            ">
+                <h3 style="color: var(--text-white); margin-bottom: 20px;">Caption Preview</h3>
+                <pre style="
+                    background: var(--primary-black);
+                    color: var(--text-white);
+                    padding: 20px;
+                    border-radius: 8px;
+                    white-space: pre-wrap;
+                    font-family: monospace;
+                    line-height: 1.6;
+                ">${previewContent}</pre>
+                <button onclick="this.closest('div').parentElement.remove();" style="
+                    background: var(--accent-red);
+                    color: var(--primary-black);
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    margin-top: 20px;
+                    cursor: pointer;
+                    font-weight: 600;
+                ">Close Preview</button>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+    }
+
+    formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = (seconds % 60).toFixed(1);
+        return `${minutes}:${secs.padStart(4, '0')}`;
+    }
+
+    downloadFile(content, filename, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
+    updateProviderInfo() {
+        const provider = this.aiProviderSelect?.value;
+        if (this.providerBadge && provider) {
+            this.providerBadge.textContent = this.getProviderName(provider);
+        }
+    }
+
+    updateLanguageInfo() {
+        const language = this.languageSelect?.value;
+        if (this.languageBadge && language) {
+            this.languageBadge.textContent = this.getLanguageName(language);
+        }
     }
 
     copyTranscript(text) {
