@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video & Audio Recorder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login Portal Overlay -->
+    <div id="loginPortal" class="login-portal">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>🎬 NK Corp Media Recorder</h1>
+                <p>Professional Video & Audio Recording Platform</p>
+                <div class="watermark-badge">Product of NK Corp - Yannick Nkongolo</div>
+            </div>
+            
+            <div class="login-forms">
+                <!-- Login Form -->
+                <div id="loginForm" class="auth-form active">
+                    <h2>Welcome Back</h2>
+                    <form id="loginFormElement">
+                        <div class="input-group">
+                            <label for="loginEmail">Email</label>
+                            <input type="email" id="loginEmail" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn auth-btn">Sign In</button>
+                    </form>
+                    <p class="auth-switch">
+                        Don't have an account? 
+                        <a href="#" id="showRegister">Sign Up</a>
+                    </p>
+                </div>
+
+                <!-- Register Form -->
+                <div id="registerForm" class="auth-form">
+                    <h2>Create Account</h2>
+                    <form id="registerFormElement">
+                        <div class="input-group">
+                            <label for="registerName">Full Name</label>
+                            <input type="text" id="registerName" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="registerEmail">Email</label>
+                            <input type="email" id="registerEmail" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="registerPassword">Password</label>
+                            <input type="password" id="registerPassword" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn auth-btn">Create Account</button>
+                    </form>
+                    <p class="auth-switch">
+                        Already have an account? 
+                        <a href="#" id="showLogin">Sign In</a>
+                    </p>
+                </div>
+            </div>
+
+            <div class="guest-access">
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+                <button id="guestBtn" class="btn guest-btn">
+                    👤 Continue as Guest
+                </button>
+                <p class="guest-note">Limited features available in guest mode</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="mainApp" style="display: none;">
+        <!-- User Info Bar -->
+        <div class="user-bar" id="userBar">
+            <div class="user-info">
+                <span class="user-name" id="userName">Guest User</span>
+                <span class="user-type" id="userType">GUEST</span>
+            </div>
+            <div class="user-actions">
+                <button id="logoutBtn" class="btn logout-btn">Logout</button>
+            </div>
+        </div>
+
+        <header>
+            <h1>📹 Video & Audio Recorder</h1>
+            <p>Record video and audio directly in your browser</p>
+            <div class="watermark">Product of NK Corp - Yannick Nkongolo</div>
+        </header>
+
+        <main>
+            <!-- Recording Type Selection -->
+            <div class="recording-type">
+                <label>
+                    <input type="radio" name="recordType" value="video" checked>
+                    📹 Video + Audio
+                </label>
+                <label>
+                    <input type="radio" name="recordType" value="audio">
+                    🎤 Audio Only
+                </label>
+            </div>
+
+            <!-- Preview/Live Feed -->
+            <div class="preview-container">
+                <video id="preview" autoplay muted playsinline></video>
+                <div class="audio-visualizer" id="audioVisualizer">
+                    <div class="audio-bars">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File Upload Section -->
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <h3>Upload Video or Audio Files</h3>
+                        <p>Drag and drop files here or click to browse</p>
+                        <input type="file" id="fileInput" multiple accept="video/*,audio/*" style="display: none;">
+                        <button type="button" class="btn upload-btn" onclick="document.getElementById('fileInput').click()">
+                            <span class="icon">📤</span>
+                            Choose Files
+                        </button>
+                    </div>
+                </div>
+                <div class="upload-progress" id="uploadProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span class="progress-text" id="progressText">Uploading...</span>
+                </div>
+            </div>
+
+            <!-- Recording Controls -->
+            <div class="controls">
+                <button id="startBtn" class="btn primary">
+                    <span class="icon">⏺</span>
+                    Start Recording
+                </button>
+                <button id="stopBtn" class="btn secondary" disabled>
+                    <span class="icon">⏹</span>
+                    Stop Recording
+                </button>
+                <button id="resetBtn" class="btn tertiary">
+                    <span class="icon">🔄</span>
+                    Reset
+                </button>
+            </div>
+
+            <!-- Recording Status -->
+            <div class="status" id="status">
+                <span class="status-text">Ready to record</span>
+                <span class="timer" id="timer">00:00</span>
+            </div>
+
+            <!-- All Media Files List -->
+            <div class="recordings-section" id="recordingsSection" style="display: none;">
+                <h2>📁 Your Media Files</h2>
+                <div class="filter-controls">
+                    <button class="filter-btn active" data-filter="all">All Files</button>
+                    <button class="filter-btn" data-filter="recorded">Recorded</button>
+                    <button class="filter-btn" data-filter="uploaded">Uploaded</button>
+                </div>
+                <div class="recordings-list" id="recordingsList">
+                    <!-- Media items will be added here dynamically -->
+                </div>
+            </div>
+        </main>
+        
+        <!-- Watermark Overlay for Recordings -->
+        <div class="recording-watermark" id="recordingWatermark">
+            <div class="watermark-text">NK Corp - Yannick Nkongolo</div>
+        </div>
+        
+        <footer class="app-footer">
+            <p>&copy; 2025 NK Corp - Yannick Nkongolo. All rights reserved.</p>
+            <p>Professional Media Recording Solutions</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
