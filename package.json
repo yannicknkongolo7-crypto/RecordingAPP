@@ -1,0 +1,35 @@
+{
+  "name": "nk-corp-video-recorder",
+  "version": "1.0.0",
+  "description": "Professional Video & Audio Recording App - Product of NK Corp",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "python3 -m http.server 8000",
+    "build": "echo 'No build required for static HTML app'",
+    "deploy": "amplify publish"
+  },
+  "keywords": [
+    "video",
+    "audio",
+    "recording",
+    "mediarecorder",
+    "aws",
+    "amplify",
+    "nk-corp"
+  ],
+  "author": "Yannick Nkongolo - NK Corp",
+  "license": "MIT",
+  "dependencies": {
+    "aws-amplify": "^6.0.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yannicknkongolo7-crypto/RecordingAPP.git"
+  },
+  "homepage": "https://main.d109euo92da3vq.amplifyapp.com/",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

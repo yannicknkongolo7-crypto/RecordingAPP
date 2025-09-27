@@ -11,8 +11,14 @@
     <div id="loginPortal" class="login-portal">
         <div class="login-container">
             <div class="login-header">
-                <h1>🎬 NK Corp Media Recorder</h1>
-                <p>Professional Video & Audio Recording Platform</p>
+                <div class="logo-section">
+                    <div class="logo-icon">🎬</div>
+                    <div class="logo-text">
+                        <h1>NK CORP</h1>
+                        <span>Media Studio</span>
+                    </div>
+                </div>
+                <p>Professional Recording & AI Transcription</p>
                 <div class="watermark-badge">Product of NK Corp - Yannick Nkongolo</div>
             </div>
             
@@ -86,23 +92,106 @@
             </div>
         </div>
 
-        <header>
-            <h1>📹 Video & Audio Recorder</h1>
-            <p>Record video and audio directly in your browser</p>
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">🎬</div>
+                    <div class="brand-text">
+                        <h1>NK CORP</h1>
+                        <span>Media Studio</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="header-btn" id="settingsBtn">⚙️</button>
+                    <button class="header-btn" id="helpBtn">❓</button>
+                </div>
+            </div>
             <div class="watermark">Product of NK Corp - Yannick Nkongolo</div>
         </header>
 
-        <main>
-            <!-- Recording Type Selection -->
-            <div class="recording-type">
-                <label>
-                    <input type="radio" name="recordType" value="video" checked>
-                    📹 Video + Audio
-                </label>
-                <label>
-                    <input type="radio" name="recordType" value="audio">
-                    🎤 Audio Only
-                </label>
+        <main class="main-content">
+            <!-- Main Dashboard -->
+            <div class="dashboard-grid">
+                <!-- Recording Panel -->
+                <div class="panel recording-panel">
+                    <div class="panel-header">
+                        <h2>🎬 Recording Studio</h2>
+                        <div class="recording-mode">
+                            <button class="mode-btn active" data-mode="video">📹 Video</button>
+                            <button class="mode-btn" data-mode="audio">🎤 Audio</button>
+                        </div>
+                    </div>
+                    
+                    <div class="recording-area">
+                        <div class="preview-container">
+                            <video id="preview" autoplay muted playsinline></video>
+                            <div class="audio-visualizer" id="audioVisualizer">
+                                <div class="audio-wave">
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                    <div class="wave-bar"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="recording-controls">
+                            <button id="startBtn" class="control-btn primary">
+                                <span class="btn-icon">⏺</span>
+                                <span>Start Recording</span>
+                            </button>
+                            <button id="stopBtn" class="control-btn secondary" disabled>
+                                <span class="btn-icon">⏹</span>
+                                <span>Stop</span>
+                            </button>
+                            <button id="resetBtn" class="control-btn tertiary">
+                                <span class="btn-icon">🔄</span>
+                                <span>Reset</span>
+                            </button>
+                        </div>
+                        
+                        <div class="recording-status">
+                            <div class="status-info">
+                                <span class="status-text" id="status">Ready to record</span>
+                            </div>
+                            <div class="timer-display">
+                                <span class="timer" id="timer">00:00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Transcription Panel -->
+                <div class="panel transcription-panel">
+                    <div class="panel-header">
+                        <h2>🤖 AI Transcription</h2>
+                        <button class="transcribe-btn" id="transcribeBtn" disabled>
+                            <span>✨</span> Transcribe
+                        </button>
+                    </div>
+                    
+                    <div class="transcription-content">
+                        <div class="transcription-status" id="transcriptionStatus">
+                            <div class="status-icon">🎯</div>
+                            <p>Record or upload media to generate transcription</p>
+                        </div>
+                        
+                        <div class="transcription-output" id="transcriptionOutput" style="display: none;">
+                            <div class="transcription-header">
+                                <span class="confidence-badge" id="confidenceBadge">95%</span>
+                                <div class="transcription-actions">
+                                    <button class="action-btn" id="copyTranscriptBtn">📋 Copy</button>
+                                    <button class="action-btn" id="downloadTranscriptBtn">💾 Download</button>
+                                </div>
+                            </div>
+                            <div class="transcript-text" id="transcriptText"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Preview/Live Feed -->
@@ -119,62 +208,44 @@
                 </div>
             </div>
 
-            <!-- File Upload Section -->
-            <div class="upload-section">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-content">
-                        <div class="upload-icon">📁</div>
-                        <h3>Upload Video or Audio Files</h3>
-                        <p>Drag and drop files here or click to browse</p>
-                        <input type="file" id="fileInput" multiple accept="video/*,audio/*" style="display: none;">
-                        <button type="button" class="btn upload-btn" onclick="document.getElementById('fileInput').click()">
-                            <span class="icon">📤</span>
-                            Choose Files
+            <!-- Media Library -->
+            <div class="panel library-panel">
+                <div class="panel-header">
+                    <h2>📁 Media Library</h2>
+                    <div class="library-actions">
+                        <button class="upload-btn" id="uploadBtn">
+                            <span>📤</span> Upload
                         </button>
+                        <input type="file" id="fileInput" multiple accept="video/*,audio/*" style="display: none;">
                     </div>
                 </div>
+                
+                <div class="upload-zone" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <p>Drag files here or click upload</p>
+                    </div>
+                </div>
+                
+                <div class="library-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="recorded">Recorded</button>
+                    <button class="filter-btn" data-filter="uploaded">Uploaded</button>
+                </div>
+                
+                <div class="media-list" id="recordingsList">
+                    <!-- Media items will be populated here -->
+                </div>
+                
                 <div class="upload-progress" id="uploadProgress" style="display: none;">
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
                     </div>
-                    <span class="progress-text" id="progressText">Uploading...</span>
+                    <div class="progress-text" id="progressText">Processing...</div>
                 </div>
             </div>
 
-            <!-- Recording Controls -->
-            <div class="controls">
-                <button id="startBtn" class="btn primary">
-                    <span class="icon">⏺</span>
-                    Start Recording
-                </button>
-                <button id="stopBtn" class="btn secondary" disabled>
-                    <span class="icon">⏹</span>
-                    Stop Recording
-                </button>
-                <button id="resetBtn" class="btn tertiary">
-                    <span class="icon">🔄</span>
-                    Reset
-                </button>
-            </div>
-
-            <!-- Recording Status -->
-            <div class="status" id="status">
-                <span class="status-text">Ready to record</span>
-                <span class="timer" id="timer">00:00</span>
-            </div>
-
-            <!-- All Media Files List -->
-            <div class="recordings-section" id="recordingsSection" style="display: none;">
-                <h2>📁 Your Media Files</h2>
-                <div class="filter-controls">
-                    <button class="filter-btn active" data-filter="all">All Files</button>
-                    <button class="filter-btn" data-filter="recorded">Recorded</button>
-                    <button class="filter-btn" data-filter="uploaded">Uploaded</button>
-                </div>
-                <div class="recordings-list" id="recordingsList">
-                    <!-- Media items will be added here dynamically -->
-                </div>
-            </div>
+            <!-- Hidden section - functionality moved to library panel above -->
         </main>
         
         <!-- Watermark Overlay for Recordings -->

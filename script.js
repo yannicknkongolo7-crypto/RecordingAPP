@@ -269,6 +269,7 @@ class VideoAudioRecorder {
         this.timerInterval = null;
         this.recordType = 'video'; // 'video' or 'audio'
         this.authManager = authManager;
+        this.currentRecordingForTranscription = null;
         
         this.initializeElements();
         this.bindEvents();
@@ -277,25 +278,32 @@ class VideoAudioRecorder {
     }
 
     initializeElements() {
-        // Get DOM elements
+        // Get DOM elements - New UI structure
         this.startBtn = document.getElementById('startBtn');
         this.stopBtn = document.getElementById('stopBtn');
         this.resetBtn = document.getElementById('resetBtn');
         this.preview = document.getElementById('preview');
-        this.status = document.getElementById('status').querySelector('.status-text');
         this.timer = document.getElementById('timer');
         this.recordingsList = document.getElementById('recordingsList');
         this.recordingsSection = document.getElementById('recordingsSection');
         this.audioVisualizer = document.getElementById('audioVisualizer');
-        this.recordTypeRadios = document.querySelectorAll('input[name="recordType"]');
         
-        // Upload elements
+        // Recording mode buttons
+        this.videoModeBtn = document.getElementById('videoMode');
+        this.audioModeBtn = document.getElementById('audioMode');
+        
+        // Status elements
+        this.statusText = document.querySelector('.status-text');
+        
+        // Transcription elements
+        this.transcribeBtn = document.getElementById('transcribeBtn');
+        this.transcriptionStatus = document.getElementById('transcriptionStatus');
+        this.transcriptionOutput = document.getElementById('transcriptionOutput');
+        this.transcriptText = document.getElementById('transcriptText');
+        
+        // Upload elements (if they exist)
         this.uploadArea = document.getElementById('uploadArea');
         this.fileInput = document.getElementById('fileInput');
-        this.uploadProgress = document.getElementById('uploadProgress');
-        this.progressFill = document.getElementById('progressFill');
-        this.progressText = document.getElementById('progressText');
-        this.filterButtons = document.querySelectorAll('.filter-btn');
         
         // Current filter state
         this.currentFilter = 'all';
@@ -303,42 +311,53 @@ class VideoAudioRecorder {
 
     bindEvents() {
         // Button events
-        this.startBtn.addEventListener('click', () => this.startRecording());
-        this.stopBtn.addEventListener('click', () => this.stopRecording());
-        this.resetBtn.addEventListener('click', () => this.reset());
+        this.startBtn?.addEventListener('click', () => this.startRecording());
+        this.stopBtn?.addEventListener('click', () => this.stopRecording());
+        this.resetBtn?.addEventListener('click', () => this.reset());
 
-        // Recording type change
-        this.recordTypeRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                this.recordType = e.target.value;
-                this.updatePreview();
-            });
-        });
+        // Recording mode toggle
+        this.videoModeBtn?.addEventListener('click', () => this.setRecordingMode('video'));
+        this.audioModeBtn?.addEventListener('click', () => this.setRecordingMode('audio'));
 
-        // File upload events
-        this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-        this.uploadArea.addEventListener('click', () => {
-            if (this.authManager.canAccessFeature('upload')) {
-                this.fileInput.click();
-            } else {
-                this.showError('File upload is only available for registered users. Please create an account or sign in.');
-            }
-        });
+        // Transcription events
+        this.transcribeBtn?.addEventListener('click', () => this.handleTranscription());
+
+        // File upload events (if elements exist)
+        if (this.fileInput) {
+            this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        }
         
-        // Drag and drop events
-        this.uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
-        this.uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
-        this.uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
+        if (this.uploadArea) {
+            this.uploadArea.addEventListener('click', () => {
+                if (this.authManager.canAccessFeature('upload')) {
+                    this.fileInput.click();
+                } else {
+                    this.showError('File upload is only available for registered users. Please create an account or sign in.');
+                }
+            });
+            
+            // Drag and drop events
+            this.uploadArea.addEventListener('dragover', (e) => this.handleDragOver(e));
+            this.uploadArea.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+            this.uploadArea.addEventListener('drop', (e) => this.handleDrop(e));
+        }
         
         // Update upload area based on user permissions
         this.updateUploadAreaAccess();
-        
-        // Filter events
-        this.filterButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleFilterChange(e));
-        });
 
         // Initialize preview
+        this.updatePreview();
+    }
+
+    setRecordingMode(mode) {
+        this.recordType = mode;
+        
+        // Update button states
+        if (this.videoModeBtn && this.audioModeBtn) {
+            this.videoModeBtn.classList.toggle('active', mode === 'video');
+            this.audioModeBtn.classList.toggle('active', mode === 'audio');
+        }
+        
         this.updatePreview();
     }
 
@@ -351,19 +370,29 @@ class VideoAudioRecorder {
 
             if (this.recordType === 'video') {
                 // Show video preview, hide audio visualizer
-                this.preview.style.display = 'block';
-                this.audioVisualizer.classList.remove('active');
+                if (this.preview) {
+                    this.preview.style.display = 'block';
+                }
+                if (this.audioVisualizer) {
+                    this.audioVisualizer.classList.remove('active');
+                }
                 
                 // Get video + audio stream
                 this.stream = await navigator.mediaDevices.getUserMedia({
                     video: { width: 1280, height: 720 },
                     audio: true
                 });
-                this.preview.srcObject = this.stream;
+                if (this.preview) {
+                    this.preview.srcObject = this.stream;
+                }
             } else {
                 // Hide video preview, show audio visualizer
-                this.preview.style.display = 'none';
-                this.audioVisualizer.classList.add('active');
+                if (this.preview) {
+                    this.preview.style.display = 'none';
+                }
+                if (this.audioVisualizer) {
+                    this.audioVisualizer.classList.add('active');
+                }
                 
                 // Get audio only stream
                 this.stream = await navigator.mediaDevices.getUserMedia({
@@ -383,7 +412,7 @@ class VideoAudioRecorder {
     }
 
     setupAudioVisualization() {
-        if (!this.stream) return;
+        if (!this.stream || !this.audioVisualizer) return;
 
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioContext.createMediaStreamSource(this.stream);
@@ -395,7 +424,7 @@ class VideoAudioRecorder {
         
         source.connect(analyser);
         
-        const bars = this.audioVisualizer.querySelectorAll('.bar');
+        const bars = this.audioVisualizer.querySelectorAll('.wave-bar');
         
         const animate = () => {
             if (this.recordType === 'audio') {
@@ -405,13 +434,197 @@ class VideoAudioRecorder {
                 
                 bars.forEach((bar, index) => {
                     const value = dataArray[index * 4] || 0;
-                    const height = Math.max(10, (value / 255) * 60);
+                    const height = Math.max(8, (value / 255) * 80);
                     bar.style.height = `${height}px`;
                 });
             }
         };
         
         animate();
+    }
+
+    // AI Transcription Methods
+    async handleTranscription() {
+        if (!this.currentRecordingForTranscription) {
+            this.showError('No recording available for transcription. Please record something first.');
+            return;
+        }
+
+        try {
+            this.showTranscriptionStatus('🔄', 'Processing audio for transcription...', 'loading');
+            this.transcribeBtn.disabled = true;
+            this.transcribeBtn.textContent = 'Processing...';
+
+            // Simulate AI transcription (in a real app, this would call an AI service like Whisper, Google Speech-to-Text, etc.)
+            const transcript = await this.performTranscription(this.currentRecordingForTranscription);
+            
+            if (transcript) {
+                this.showTranscriptionResult(transcript);
+            } else {
+                this.showTranscriptionStatus('❌', 'Transcription failed. Please try again.', 'error');
+            }
+        } catch (error) {
+            console.error('Transcription error:', error);
+            this.showTranscriptionStatus('❌', 'Transcription failed. Please try again.', 'error');
+        } finally {
+            this.transcribeBtn.disabled = false;
+            this.transcribeBtn.innerHTML = '<span class="icon">🎯</span> Transcribe';
+        }
+    }
+
+    async performTranscription(recording) {
+        // Simulate processing time
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // In a real application, you would:
+        // 1. Convert the audio to the required format
+        // 2. Send it to an AI transcription service like:
+        //    - OpenAI Whisper API
+        //    - Google Cloud Speech-to-Text
+        //    - Azure Speech Services
+        //    - Amazon Transcribe
+        // 3. Return the transcribed text
+
+        // For demo purposes, we'll return a mock transcription
+        const mockTranscripts = [
+            "Hello, this is a sample transcription of your recorded audio. The AI has successfully processed your speech and converted it into text. This feature would normally connect to a real speech-to-text service like OpenAI Whisper or Google Cloud Speech API.",
+            "Welcome to the video recording application. This transcription feature demonstrates how your recorded content can be automatically converted to text using artificial intelligence. In a production environment, this would integrate with professional speech recognition services.",
+            "This is an example of AI-powered transcription functionality. Your recorded audio or video content has been processed and converted to readable text. This feature can be extremely useful for creating captions, notes, or searchable content from your recordings."
+        ];
+
+        const randomIndex = Math.floor(Math.random() * mockTranscripts.length);
+        return {
+            text: mockTranscripts[randomIndex],
+            confidence: 0.92 + Math.random() * 0.07, // Random confidence between 92-99%
+            duration: recording.duration,
+            recordingType: recording.type
+        };
+    }
+
+    showTranscriptionStatus(icon, message, type = 'info') {
+        if (!this.transcriptionStatus || !this.transcriptionOutput) return;
+
+        this.transcriptionStatus.style.display = 'flex';
+        this.transcriptionOutput.style.display = 'none';
+
+        this.transcriptionStatus.innerHTML = `
+            <div class="status-icon">${icon}</div>
+            <p>${message}</p>
+        `;
+
+        // Add loading animation for processing state
+        if (type === 'loading') {
+            const statusIcon = this.transcriptionStatus.querySelector('.status-icon');
+            statusIcon.style.animation = 'spin 1s linear infinite';
+            
+            // Add CSS for spin animation if it doesn't exist
+            if (!document.querySelector('#spin-animation')) {
+                const style = document.createElement('style');
+                style.id = 'spin-animation';
+                style.textContent = `
+                    @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+    }
+
+    showTranscriptionResult(result) {
+        if (!this.transcriptionOutput || !this.transcriptText) return;
+
+        this.transcriptionStatus.style.display = 'none';
+        this.transcriptionOutput.style.display = 'flex';
+
+        // Update confidence badge and transcript text
+        const confidencePercentage = Math.round(result.confidence * 100);
+        const confidenceBadge = this.transcriptionOutput.querySelector('.confidence-badge');
+        if (confidenceBadge) {
+            confidenceBadge.textContent = `${confidencePercentage}% confidence`;
+            
+            // Color code confidence levels
+            if (confidencePercentage >= 90) {
+                confidenceBadge.style.background = 'var(--accent-green)';
+            } else if (confidencePercentage >= 75) {
+                confidenceBadge.style.background = 'var(--accent-blue)';
+            } else {
+                confidenceBadge.style.background = 'var(--accent-red)';
+            }
+        }
+
+        this.transcriptText.textContent = result.text;
+
+        // Add action button event listeners
+        const copyBtn = this.transcriptionOutput.querySelector('.action-btn[onclick*="copy"]');
+        const exportBtn = this.transcriptionOutput.querySelector('.action-btn[onclick*="export"]');
+
+        if (copyBtn) {
+            copyBtn.onclick = () => this.copyTranscript(result.text);
+        }
+        if (exportBtn) {
+            exportBtn.onclick = () => this.exportTranscript(result);
+        }
+
+        this.showSuccess(`Transcription completed with ${confidencePercentage}% confidence!`);
+    }
+
+    copyTranscript(text) {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                this.showSuccess('Transcript copied to clipboard!');
+            }).catch(() => {
+                this.fallbackCopyTextToClipboard(text);
+            });
+        } else {
+            this.fallbackCopyTextToClipboard(text);
+        }
+    }
+
+    fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.top = '0';
+        textArea.style.left = '0';
+        textArea.style.position = 'fixed';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            this.showSuccess('Transcript copied to clipboard!');
+        } catch (err) {
+            this.showError('Failed to copy transcript');
+        }
+        
+        document.body.removeChild(textArea);
+    }
+
+    exportTranscript(result) {
+        const content = `Transcript Export
+Generated on: ${new Date().toLocaleString()}
+Recording Type: ${result.recordingType.toUpperCase()}
+Duration: ${result.duration}
+Confidence: ${Math.round(result.confidence * 100)}%
+
+Transcript:
+${result.text}
+
+---
+Generated by NK Corp Video Recorder
+Product of NK Corp - Yannick Nkongolo`;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `transcript_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.txt`;
+        link.click();
+        URL.revokeObjectURL(url);
+        
+        this.showSuccess('Transcript exported successfully!');
     }
 
     async startRecording() {
@@ -513,10 +726,21 @@ class VideoAudioRecorder {
         this.updateRecordingsList();
         this.saveRecordingsToStorage();
         
+        // Set this recording as available for transcription
+        this.currentRecordingForTranscription = recording;
+        this.enableTranscription();
+        
         this.updateStatus(`${this.recordType === 'video' ? 'Video' : 'Audio'} recording saved!`);
         
         // Clear recorded chunks
         this.recordedChunks = [];
+    }
+
+    enableTranscription() {
+        if (this.transcribeBtn && this.currentRecordingForTranscription) {
+            this.transcribeBtn.disabled = false;
+            this.showTranscriptionStatus('🎯', 'Ready to transcribe your recording. Click the button above to start.', 'ready');
+        }
     }
 
     getRecordingDuration() {
@@ -766,38 +990,25 @@ class VideoAudioRecorder {
     }
 
     updateRecordingsList() {
-        const filteredRecordings = this.getFilteredRecordings();
+        if (!this.recordingsList) return;
         
         if (this.recordings.length === 0) {
-            this.recordingsSection.style.display = 'none';
+            this.recordingsList.innerHTML = `
+                <div class="no-recordings" style="text-align: center; padding: 40px; color: var(--text-gray);">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">📁</div>
+                    <h3>No recordings yet</h3>
+                    <p>Start recording to see your files here</p>
+                </div>
+            `;
             return;
         }
 
-        this.recordingsSection.style.display = 'block';
         this.recordingsList.innerHTML = '';
 
-        if (filteredRecordings.length === 0) {
-            const noResults = document.createElement('div');
-            noResults.className = 'no-results';
-            noResults.style.cssText = 'text-align: center; padding: 40px; color: #6c757d;';
-            noResults.innerHTML = `
-                <div style="font-size: 3rem; margin-bottom: 15px;">📁</div>
-                <h3>No ${this.currentFilter === 'all' ? '' : this.currentFilter} files found</h3>
-                <p>Try changing the filter or ${this.currentFilter === 'uploaded' ? 'upload some files' : 'record something new'}</p>
-            `;
-            this.recordingsList.appendChild(noResults);
-            return;
-        }
-
-        filteredRecordings.forEach(recording => {
+        this.recordings.forEach(recording => {
             const item = this.createRecordingItem(recording);
             this.recordingsList.appendChild(item);
         });
-
-        // Hide progress after updating list
-        if (this.currentFilter === 'all' || this.currentFilter === 'uploaded') {
-            this.hideUploadProgress();
-        }
     }
 
     setupWatermark() {
@@ -836,37 +1047,57 @@ class VideoAudioRecorder {
 
     createRecordingItem(recording) {
         const item = document.createElement('div');
-        item.className = 'recording-item';
+        item.className = 'library-item';
         
-        const typeIcon = recording.type === 'video' ? '📹' : '🎤';
-        const sourceLabel = recording.source === 'uploaded' ? 'Uploaded' : 'Recorded';
-        const displayName = recording.name || `${recording.type} ${sourceLabel.toLowerCase()}`;
+        const typeIcon = recording.type === 'video' ? '🎥' : '�';
+        const displayName = recording.name || `${recording.type} recording`;
         
         item.innerHTML = `
-            <div class="recording-info">
-                <div class="recording-title">
-                    ${typeIcon} ${displayName}
-                    <span class="recording-source ${recording.source}">${sourceLabel}</span>
+            <div class="library-item-header">
+                <div class="item-icon">${typeIcon}</div>
+                <div class="item-info">
+                    <div class="item-title">${displayName}</div>
+                    <div class="item-meta">${recording.timestamp.toLocaleDateString()} • ${recording.duration} • ${recording.size}</div>
                 </div>
-                <div class="recording-meta">
-                    ${recording.timestamp.toLocaleString()} • 
-                    Duration: ${recording.duration} • 
-                    Size: ${recording.size}
+                <div class="item-actions">
+                    <button class="action-btn" onclick="recorder.selectForTranscription('${recording.id}')" title="Select for transcription">
+                        🎯
+                    </button>
+                    <button class="action-btn" onclick="recorder.playRecording('${recording.id}')" title="Play">
+                        ▶️
+                    </button>
+                    <button class="action-btn" onclick="recorder.downloadRecording('${recording.id}')" title="Download">
+                        📥
+                    </button>
+                    <button class="action-btn delete" onclick="recorder.deleteRecording('${recording.id}')" title="Delete">
+                        �️
+                    </button>
                 </div>
-            </div>
-            <div class="recording-actions">
-                <button class="play-btn" onclick="recorder.playRecording('${recording.id}')">
-                    ▶️ Play
-                </button>
-                <button class="download-btn" onclick="recorder.downloadRecording('${recording.id}')">
-                    💾 Download
-                </button>
-                <button class="delete-btn" onclick="recorder.deleteRecording('${recording.id}')">
-                    🗑️ Delete
-                </button>
             </div>
         `;
         return item;
+    }
+
+    selectForTranscription(recordingId) {
+        const recording = this.recordings.find(r => r.id == recordingId);
+        if (!recording) return;
+
+        this.currentRecordingForTranscription = recording;
+        this.enableTranscription();
+        
+        // Show visual feedback
+        const items = document.querySelectorAll('.library-item');
+        items.forEach(item => item.classList.remove('selected'));
+        
+        const selectedItem = [...items].find(item => 
+            item.querySelector('.action-btn[onclick*="selectForTranscription"]')
+                ?.getAttribute('onclick')?.includes(recordingId)
+        );
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+        }
+        
+        this.showSuccess(`Selected "${recording.name}" for transcription`);
     }
 
     playRecording(recordingId) {
@@ -993,12 +1224,18 @@ class VideoAudioRecorder {
     }
 
     updateStatus(message, isRecording = false) {
-        this.status.textContent = message;
-        if (isRecording) {
-            this.status.classList.add('recording');
-        } else {
-            this.status.classList.remove('recording');
+        if (this.statusText) {
+            this.statusText.textContent = message;
+            if (isRecording) {
+                this.statusText.classList.add('recording');
+            } else {
+                this.statusText.classList.remove('recording');
+            }
         }
+    }
+
+    showSuccess(message) {
+        this.authManager.showSuccess(message);
     }
 
     formatFileSize(bytes) {
