@@ -599,6 +599,106 @@ class AuthManager {
     showLoginPortal() {
         document.getElementById('loginPortal').style.display = 'flex';
         document.getElementById('mainApp').style.display = 'none';
+        this.setupScrollHint();
+    }
+
+    setupScrollHint() {
+        const portal = document.getElementById('loginPortal');
+        const scrollHint = document.getElementById('scrollHint');
+        
+        if (!portal || !scrollHint) return;
+
+        // Show hint if content overflows viewport
+        const checkScrollNeeded = () => {
+            const isScrollable = portal.scrollHeight > portal.clientHeight;
+            const isNearBottom = (portal.scrollTop + portal.clientHeight) >= (portal.scrollHeight - 50);
+            
+            if (isScrollable && !isNearBottom) {
+                scrollHint.classList.add('show');
+            } else {
+                scrollHint.classList.remove('show');
+            }
+        };
+
+        // Check on load and resize
+        checkScrollNeeded();
+        window.addEventListener('resize', checkScrollNeeded);
+        
+        // Hide hint when user scrolls
+        portal.addEventListener('scroll', () => {
+            const scrolled = portal.scrollTop > 50;
+            if (scrolled) {
+                scrollHint.classList.remove('show');
+            } else {
+                checkScrollNeeded();
+            }
+        });
+
+        // Auto-hide hint after 5 seconds
+        setTimeout(() => {
+            scrollHint.classList.remove('show');
+        }, 5000);
+
+        // Keyboard navigation for login portal
+        this.setupKeyboardNavigation(portal);
+    }
+
+    setupKeyboardNavigation(portal) {
+        document.addEventListener('keydown', (e) => {
+            // Only if login portal is visible
+            if (portal.style.display !== 'flex') return;
+
+            switch(e.key) {
+                case 'ArrowDown':
+                case 'PageDown':
+                    e.preventDefault();
+                    portal.scrollBy({ top: 100, behavior: 'smooth' });
+                    break;
+                case 'ArrowUp':
+                case 'PageUp':
+                    e.preventDefault();
+                    portal.scrollBy({ top: -100, behavior: 'smooth' });
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    portal.scrollTo({ top: 0, behavior: 'smooth' });
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    portal.scrollTo({ top: portal.scrollHeight, behavior: 'smooth' });
+                    break;
+            }
+        });
+
+        // Enhanced touch gestures for mobile
+        this.setupTouchGestures(portal);
+    }
+
+    setupTouchGestures(portal) {
+        let startY = 0;
+        let startTime = 0;
+
+        portal.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            startTime = Date.now();
+        }, { passive: true });
+
+        portal.addEventListener('touchend', (e) => {
+            const endY = e.changedTouches[0].clientY;
+            const deltaY = startY - endY;
+            const deltaTime = Date.now() - startTime;
+
+            // Detect swipe gestures (minimum distance and speed)
+            if (Math.abs(deltaY) > 50 && deltaTime < 300) {
+                if (deltaY > 0) {
+                    // Swipe up - scroll down faster
+                    portal.scrollBy({ top: 200, behavior: 'smooth' });
+                } else {
+                    // Swipe down - scroll up faster  
+                    portal.scrollBy({ top: -200, behavior: 'smooth' });
+                }
+            }
+        }, { passive: true });
     }
 
     showMainApp() {

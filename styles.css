@@ -216,13 +216,142 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: 100vh;
+    min-height: 100vh;
     background: var(--primary-black);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     z-index: 2000;
     padding: 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scroll-behavior: smooth;
+}
+
+/* Scroll hint */
+.scroll-hint {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 212, 170, 0.9);
+    color: var(--primary-black);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    z-index: 2001;
+    animation: bounceHint 2s ease-in-out infinite;
+    display: none;
+}
+
+.scroll-hint.show {
+    display: block;
+}
+
+@keyframes bounceHint {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateX(-50%) translateY(0);
+    }
+    40% {
+        transform: translateX(-50%) translateY(-10px);
+    }
+    60% {
+        transform: translateX(-50%) translateY(-5px);
+    }
+}
+
+@media (max-height: 800px) {
+    .scroll-hint {
+        display: block;
+    }
+}
+
+@media (max-height: 600px) {
+    .scroll-hint {
+        bottom: 10px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+    
+    .login-container {
+        margin-top: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .login-header {
+        padding: 20px 15px;
+    }
+    
+    .login-forms,
+    .guest-access {
+        padding: 15px;
+    }
+}
+
+@media (max-height: 500px) {
+    .login-container {
+        margin-top: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .login-header {
+        padding: 15px;
+    }
+    
+    .login-header .logo-text h1 {
+        font-size: 1.3rem;
+        margin-bottom: 2px;
+    }
+    
+    .login-header p {
+        font-size: 0.9rem;
+        margin: 10px 0;
+    }
+    
+    .watermark-badge {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+    }
+}
+
+/* Custom scrollbar for login portal */
+.login-portal::-webkit-scrollbar {
+    width: 8px;
+}
+
+.login-portal::-webkit-scrollbar-track {
+    background: var(--primary-black);
+}
+
+.login-portal::-webkit-scrollbar-thumb {
+    background: var(--border-gray);
+    border-radius: 4px;
+}
+
+.login-portal::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-green);
+}
+
+/* Scroll indicator for mobile */
+@media (max-width: 768px) {
+    .login-portal::before {
+        content: '';
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+        z-index: 10;
+        animation: scrollPulse 3s ease-in-out infinite;
+    }
+}
+
+@keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
 }
 
 .login-container {
@@ -234,6 +363,11 @@
     max-width: 450px;
     overflow: hidden;
     animation: fadeInUp 0.6s ease;
+    margin: auto;
+    margin-top: 60px;
+    margin-bottom: 80px;
+    min-height: fit-content;
+    position: relative;
 }
 
 @keyframes fadeInUp {
@@ -1704,22 +1838,32 @@ body {
     }
     
     /* Login Portal Mobile */
+    .login-portal {
+        padding: 10px;
+        align-items: flex-start;
+        justify-content: center;
+    }
+    
     .login-container {
-        margin: 10px;
+        margin: 0;
+        margin-top: 20px;
+        margin-bottom: 20px;
         max-width: none;
+        width: 100%;
+        max-height: none;
     }
     
     .login-header {
-        padding: 20px;
+        padding: 25px 20px;
     }
     
-    .login-header h1 {
+    .login-header .logo-text h1 {
         font-size: 1.6rem;
     }
     
     .login-forms,
     .guest-access {
-        padding: 20px;
+        padding: 25px 20px;
     }
     
     /* User Bar Mobile */
@@ -1949,18 +2093,29 @@ body {
     }
     
     /* Login Portal Mobile Specific */
-    .login-container {
-        margin: 5px;
-        border-radius: 12px;
+    .login-portal {
+        padding: 5px;
     }
     
-    .login-header h1 {
+    .login-container {
+        margin: 0;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        border-radius: 12px;
+        width: calc(100% - 10px);
+    }
+    
+    .login-header {
+        padding: 20px 15px;
+    }
+    
+    .login-header .logo-text h1 {
         font-size: 1.4rem;
     }
     
-    .auth-forms,
+    .login-forms,
     .guest-access {
-        padding: 15px;
+        padding: 20px 15px;
     }
     
     .auth-btn {
